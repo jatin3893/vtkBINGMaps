@@ -26,7 +26,7 @@ int main()
   vtkNew<vtkRenderer> rend;
   map->SetRenderer(rend.GetPointer());
   map->SetCenter(0, 0);
-  map->SetZoom(5);
+  map->SetZoom(2);
 
   vtkNew<vtkRenderWindow> wind;
   wind->AddRenderer(rend.GetPointer());
@@ -35,7 +35,6 @@ int main()
   vtkNew<vtkRenderWindowInteractor> intr;
   intr->SetRenderWindow(wind.GetPointer());
 
-  rend->GetActiveCamera()->SetPosition(0.0, 0.0, 50.0);
   map->Draw();
   intr->Start();
 }

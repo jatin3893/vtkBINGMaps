@@ -23,10 +23,50 @@
 #include <vtkCamera.h>
 #include <vtkMatrix4x4.h>
 #include <vtkPlaneSource.h>
+#include <vtkCallbackCommand.h>
+#include <vtkRenderWindowInteractor.h>
 
 #include <sstream>
 
 vtkStandardNewMacro(vtkMap)
+
+class MapCallback : public vtkCallbackCommand
+{
+    vtkMap *map;
+
+public:
+    MapCallback(vtkMap *map)
+    {
+        this->map = map;
+    }
+
+    static double DistanceToZoomMap[18];
+
+    virtual void Execute(vtkObject *caller, unsigned long eid, void *callData)
+    {
+        std::cout << "Execute Renderer!" << std::endl;
+        double distance = map->GetRenderer()->GetActiveCamera()->GetPosition()[2];
+        std::cout << distance << std::endl;
+        for(int i = 0; i < sizeof(DistanceToZoomMap) / sizeof(DistanceToZoomMap[0]); i++)
+        {
+            if(distance > DistanceToZoomMap[i])
+            {
+                map->SetZoom(i + 1);
+                map->Draw();
+                break;
+            }
+        }
+
+    }
+};
+
+double MapCallback::DistanceToZoomMap[] = {
+  8.39055,  // Greater => Zoom Level 1
+  4.73624,  // Greater => Zoom Level 2
+  2.67349,  // Greater => Zoom Level 3
+  1.2443,   // Greater => Zoom Level 4
+  0         // Greater => Zoom Level 5
+};
 
 //----------------------------------------------------------------------------
 vtkMap::vtkMap()
@@ -34,6 +74,7 @@ vtkMap::vtkMap()
   this->Zoom = 1;
   this->Center[0] = this->Center[1] = 0.0;
   this->Initialized = false;
+  callback = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -67,6 +108,9 @@ void vtkMap::Draw()
     this->Renderer->GetActiveCamera()->SetPosition(this->Center[0],
                                                    this->Center[1],
                                                    100.0);
+    callback = new MapCallback(this);
+    this->Renderer->GetRenderWindow()->GetInteractor()->AddObserver(vtkCommand::MouseWheelBackwardEvent, callback);
+    this->Renderer->GetRenderWindow()->GetInteractor()->AddObserver(vtkCommand::MouseWheelForwardEvent, callback);
     }
   this->Update();
   this->Renderer->GetRenderWindow()->Render();
@@ -96,7 +140,7 @@ void vtkMap::AddTiles()
   Renderer->SetWorldPoint(1, 1, 0, 0);
   Renderer->WorldToDisplay();
   Renderer->GetDisplayPoint(topRight);
-  vtkDebugMacro( << "Top Right Display: " << topRight[0] << " " << topRight[1] << " " << topRight[2]);
+  vtkWarningMacro( << "Top Right Display: " << topRight[0] << " " << topRight[1] << " " << topRight[2]);
 
   // Obtain window size in terms of world coordinates
   int height = topRight[0] - bottomLeft[0];
@@ -108,6 +152,8 @@ void vtkMap::AddTiles()
 
   int COLS = xmax / width + 1;
   COLS = COLS < (2 << (this->Zoom - 1)) ? COLS : (2 << (this->Zoom - 1));
+
+  std::cout << "Rows and Cols: " << ROWS << " " << COLS << std::endl;
 
   // Convert latitude longitude to Grid Coordinates
   int pixX, pixY, tileX, tileY;

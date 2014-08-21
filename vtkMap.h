@@ -23,6 +23,7 @@
 #include <vtkObject.h>
 
 class vtkRenderer;
+class MapCallback;
 
 class vtkMap : public vtkObject
 {
@@ -110,6 +111,7 @@ protected:
 
 protected:
   bool Initialized;
+  MapCallback *callback;
 
 private:
   vtkMap(const vtkMap&);  // Not implemented
